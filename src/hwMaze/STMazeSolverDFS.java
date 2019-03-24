@@ -68,7 +68,8 @@ public class STMazeSolverDFS extends SkippingMazeSolver
                 solutionPath.push(ch.choices.peek());
             }
 
-            if (maze.display != null) maze.display.updateDisplay();
+            if (maze.display != null)
+                maze.display.updateDisplay();
             return pathToFullPath(solutionPath);
         }
     }
