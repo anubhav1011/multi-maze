@@ -27,34 +27,11 @@ public class StudentMTMazeSolver extends SkippingMazeSolver {
         this.seen = new ConcurrentHashMap<>();
         this.sem = new Semaphore(Runtime.getRuntime().availableProcessors());
     }
-//    public List<Direction> solveSe() throws InterruptedException {
-//        Position p = this.maze.getStart();
-//        for (Direction direction : this.maze.getMoves(p)) {
-////                if (sem.tryAcquire()) {
-////                    exec.execute(newTask(this.from.move(direction), direction, this, maze));
-////
-////
-////                } else {
-////                    Puzzletask puzzletask = new Puzzletask(this.from.move(direction), direction, this, maze);
-////                    puzzletask.solveSequentially();
-////                    //puzzletask.solveSequentially(this.from.move(direction), direction, this, maze);
-////                }
-//            Puzzletask puzzletask = new Puzzletask(p.move(direction), direction, null, maze);
-//            puzzletask.solveSequentially();
-//
-//
-//        }
-//        return constructSolution(solution.getValue());
-//
-//
-//    }
-
 
     public List<Direction> solve() {
         // TODO: Implement your code here
         Position p = this.maze.getStart();
         for (Direction direction : this.maze.getMoves(p)) {
-            //if (sem.tryAcquire()) {
             exec.execute(newTask(p.move(direction), direction, null, maze));
         }
         Move endMove;
@@ -66,19 +43,6 @@ public class StudentMTMazeSolver extends SkippingMazeSolver {
             e.printStackTrace();
         }
         return null;
-//        exec.execute(newTask(p, null, null, this.maze));
-//        try {
-//            Move endMove = solution.getValue();
-//            LinkedList<Direction> sol = endMove == null ? null : constructSolution(endMove);
-//            //return endMove == null ? null : constructSolution(endMove);
-//            exec.shutdownNow();
-//            return sol;
-//
-//
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//        return null;
     }
 
     protected Runnable newTask(Position p, Direction direction, Move prev, Maze maze) {
@@ -95,7 +59,6 @@ public class StudentMTMazeSolver extends SkippingMazeSolver {
 
         }
         return sol;
-
 
     }
 
@@ -163,33 +126,6 @@ public class StudentMTMazeSolver extends SkippingMazeSolver {
 
 
     }
-//    static class Node<P, M> {
-//
-//
-//        final P pos;
-//        final M move;
-//        final Node<P, M> prev;
-//
-//
-//        Node(P pos, M move, Node<P, M> prev) {
-//            this.pos = pos;
-//            this.move = move;
-//            this.prev = prev;
-//
-//        }
-//
-//
-//        List<M> asMoveList() {
-//            List<M> solution = new LinkedList<>();
-//            for (Node<P, M> n = this; n.move != null; n = n.prev) {
-//                solution.add(0, n.move);
-//
-//            }
-//            return solution;
-//
-//        }
-//
-//    }
 
 
 }
