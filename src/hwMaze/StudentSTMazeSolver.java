@@ -1,11 +1,10 @@
 package hwMaze;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 public class StudentSTMazeSolver extends SkippingMazeSolver {
 
@@ -21,6 +20,34 @@ public class StudentSTMazeSolver extends SkippingMazeSolver {
 
     @Override
     public List<Direction> solve() {
+        List<Future<Result>> results = new ArrayList<>();
+        Position startPosition = maze.getStart();
+        try {
+            Choice firstChoice = firstChoice(startPosition);
+            while (!firstChoice.choices.isEmpty()) {
+                //Create a separate task for all possible directions;
+                Direction currentDirection = firstChoice.choices.peek();
+                ParallelTask task = new ParallelTask(follow(firstChoice.at, firstChoice.choices.pop()), currentDirection);
+                Future<Result> taskFuture = exec.submit(task);
+                results.add(taskFuture);
+            }
+        } catch (SolutionFound solutionFound) {
+            solutionFound.printStackTrace();
+        }
+        try {
+            for (Future<Result> resultFuture : results) {
+                Result result = resultFuture.get();
+                if (result != null) {
+                    return result.getDirection();
+                }
+
+            }
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
         return null;
     }
 
@@ -29,9 +56,11 @@ public class StudentSTMazeSolver extends SkippingMazeSolver {
 
 
         Choice startingPoint;
+        Direction from;
 
-        public ParallelTask(Choice startingPoint) {
+        public ParallelTask(Choice startingPoint, Direction from) {
             this.startingPoint = startingPoint;
+            this.from = from;
         }
 
         @Override
@@ -48,7 +77,6 @@ public class StudentSTMazeSolver extends SkippingMazeSolver {
                             choiceStack.peek().choices.pop();
                         }
                         continue;
-
                     }
                     choiceStack.push(follow(ch.at, ch.choices.peek()));
 
@@ -61,15 +89,18 @@ public class StudentSTMazeSolver extends SkippingMazeSolver {
                     ch = iter.next();
                     solutionPath.push(ch.choices.peek());
                 }
-                if (maze.display != null)
+                solutionPath.push(from);
+                Iterator<Direction> iterator = solutionPath.iterator();
+                while (iterator.hasNext()) {
+                    System.out.print(" " + iterator.next() + " ");
+                }
+                if (maze.display != null) {
+                    markPath(solutionPath, 1);
                     maze.display.updateDisplay();
+                }
                 Result result = new Result(pathToFullPath(solutionPath), 0);
                 return result;
-
-
             }
-
-
         }
     }
 

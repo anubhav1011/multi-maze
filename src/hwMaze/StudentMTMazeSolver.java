@@ -82,28 +82,26 @@ public class StudentMTMazeSolver extends SkippingMazeSolver {
             if (this.maze.getEnd().equals(this.from)) {
                 //System.out.println("Solution found + " + this.from.toString());
                 solution.setValue(this);
-                sem.release();
+                //sem.release();
                 return;
             }
             for (Direction direction : this.maze.getMoves(this.from)) {
                 //if (sem.tryAcquire()) {
-                //exec.execute(newTask(this.from.move(direction), direction, this, maze));
-                if (sem.tryAcquire()) {
-                    try {
-                        sem.acquire();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    exec.execute(newTask(this.from.move(direction), direction, this, maze));
-
-                } else {
-                    Puzzletask puzzletask = new Puzzletask(this.from.move(direction), direction, this, maze);
-                    puzzletask.solveSequentially();
-                }
-
-
+                exec.execute(newTask(this.from.move(direction), direction, this, maze));
+//                if (sem.tryAcquire()) {
+//                    try {
+//                        sem.acquire();
+//                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+//                    }
+//                    exec.execute(newTask(this.from.move(direction), direction, this, maze));
+//
+//                } else {
+//                    Puzzletask puzzletask = new Puzzletask(this.from.move(direction), direction, this, maze);
+//                    puzzletask.solveSequentially();
+//                }
             }
-            sem.release();
+            //sem.release();
         }
 
         public void solveSequentially() {

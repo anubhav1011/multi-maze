@@ -113,11 +113,14 @@ public abstract class SkippingMazeSolver extends MazeSolver {
         LinkedList<Direction> fullPath = new LinkedList<Direction>();
         // Get full solution path.
         Position curr = maze.getStart();
-        maze.setColor(curr, 5);
+        //maze.setColor(curr, 5);
         Direction go_to = null, came_from = null;
         while (!curr.equals(maze.getEnd())) {
             LinkedList<Direction> moves = maze.getMoves(curr);
             moves.remove(came_from);
+//            System.out.println("Current Position is " + curr.toString());
+//            System.out.println("Moves Available " + moves.toString());
+//            System.out.println("Next Path in ");
             if (moves.size() == 1) go_to = moves.getFirst();
             else if (moves.size() > 1) go_to = pathIter.next();
             else if (moves.size() == 0) {
@@ -127,7 +130,7 @@ public abstract class SkippingMazeSolver extends MazeSolver {
             }
             fullPath.add(go_to);
             curr = curr.move(go_to);
-            maze.setColor(curr, 5);
+            // maze.setColor(curr, 5);
             came_from = go_to.reverse();
         }
         return fullPath;
