@@ -30,10 +30,10 @@ public class Main {
                 {
                         //new hwMaze.STMazeSolverRec(maze),
                         //new hwMaze.STMazeSolverDFS(maze),
-                        new StudentSTMazeSolver(maze),
+                        new StudentMTMazeSolver(maze),
                         //new StudentMultiPuzzleSolver(maze),
                         //new hwMaze.STMazeSolverBFS(maze),
-                        //new StudentMTMazeSolver(maze),  //uncomment this line when you are ready to test yours
+                        //new StudentMTMazeSolver1(maze),  //uncomment this line when you are ready to test yours
                 };
         for (hwMaze.MazeSolver solver : solvers) {
             long startTime, endTime;

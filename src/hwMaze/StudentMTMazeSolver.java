@@ -1,128 +1,115 @@
 package hwMaze;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.*;
 
-/**
- * This file needs to hold your solver to be tested.
- * You can alter the class to extend any class that extends MazeSolver.
- * It must have a constructor that takes in a Maze.
- * It must have the solve() method that returns the datatype List<Direction>
- * which will either be a reference to a list of steps to take or will
- * be null if the maze cannot be solved.
- */
 public class StudentMTMazeSolver extends SkippingMazeSolver {
 
     private final ExecutorService exec;
 
-    private final ConcurrentMap<Position, Boolean> seen;
-    private final Semaphore sem;
-
-    final ValueLatch<Move> solution = new ValueLatch<>();
-
     public StudentMTMazeSolver(Maze maze) {
         super(maze);
-        this.exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-        this.seen = new ConcurrentHashMap<>();
-        this.sem = new Semaphore(Runtime.getRuntime().availableProcessors());
+        int numberofProcessors = Runtime.getRuntime().availableProcessors();
+        System.out.println("Number of processors available " + numberofProcessors);
+        this.exec = Executors.newFixedThreadPool(numberofProcessors);
+
     }
 
+    @Override
     public List<Direction> solve() {
-        // TODO: Implement your code here
-        Position p = this.maze.getStart();
-        for (Direction direction : this.maze.getMoves(p)) {
-            exec.execute(newTask(p.move(direction), direction, null, maze));
-        }
-        Move endMove;
+        List<Future<Result>> results = new ArrayList<>();
+        Position startPosition = maze.getStart();
+        List<Direction> solution = null;
+        int totalChoicesMade = 0;
         try {
-            endMove = solution.getValue();
-            LinkedList<Direction> sol = endMove == null ? null : constructSolution(endMove);
-            return sol;
+            Choice firstChoice = firstChoice(startPosition);
+            while (!firstChoice.choices.isEmpty()) {
+                //Create a separate task for all possible directions;
+                Direction currentDirection = firstChoice.choices.peek();
+                ParallelTask task = new ParallelTask(follow(firstChoice.at, firstChoice.choices.pop()), currentDirection);
+                Future<Result> taskFuture = exec.submit(task);
+                results.add(taskFuture);
+            }
+        } catch (SolutionFound solutionFound) {
+            solutionFound.printStackTrace();
+        }
+        try {
+            for (Future<Result> resultFuture : results) {
+                Result result = resultFuture.get();
+                boolean solutionFound = result.isSolutionFound();
+                totalChoicesMade += result.getTotalCount();
+                if (solutionFound) {
+                    solution = result.getDirection();
+                }
+
+            }
+
         } catch (InterruptedException e) {
             e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
         }
-        return null;
-    }
-
-    protected Runnable newTask(Position p, Direction direction, Move prev, Maze maze) {
-        return new Puzzletask(p, direction, prev, maze);
-    }
-
-
-    private LinkedList<Direction> constructSolution(Move endMove) {
-        LinkedList<Direction> sol = new LinkedList<>();
-        Move current = endMove;
-        while (current != null && current.to != null) {
-            sol.addFirst(current.to);
-            current = current.previous;
-
-        }
-        return sol;
-
+        System.out.println("Number of choices made: " + totalChoicesMade);
+        return solution;
     }
 
 
-    class Puzzletask extends Move implements Runnable {
-
-        private final Maze maze;
+    class ParallelTask implements Callable<Result> {
 
 
-        Puzzletask(Position pos, Direction move, Move prev, Maze maze) {
-            super(pos, move, prev);
-            this.maze = maze;
+        Choice startingPoint;
+        Direction from;
+        int choiceCounter;
 
+        public ParallelTask(Choice startingPoint, Direction from) {
+            this.startingPoint = startingPoint;
+            this.from = from;
         }
 
-        public void run() {
-            if (solution.isSet() || seen.containsKey(this.from)) {
-                return;
-            }
-            seen.put(this.from, true);
-            if (this.maze.getEnd().equals(this.from)) {
-                //System.out.println("Solution found + " + this.from.toString());
-                solution.setValue(this);
-                //sem.release();
-                return;
-            }
-            for (Direction direction : this.maze.getMoves(this.from)) {
-                //if (sem.tryAcquire()) {
-                exec.execute(newTask(this.from.move(direction), direction, this, maze));
-//                if (sem.tryAcquire()) {
-//                    try {
-//                        sem.acquire();
-//                    } catch (InterruptedException e) {
-//                        e.printStackTrace();
-//                    }
-//                    exec.execute(newTask(this.from.move(direction), direction, this, maze));
-//
-//                } else {
-//                    Puzzletask puzzletask = new Puzzletask(this.from.move(direction), direction, this, maze);
-//                    puzzletask.solveSequentially();
+        @Override
+        public Result call() {
+            LinkedList<Choice> choiceStack = new LinkedList<Choice>();
+            Choice ch;
+            choiceStack.push(this.startingPoint);
+            try {
+                while (!choiceStack.isEmpty()) {
+                    ch = choiceStack.peek();
+                    if (ch.isDeadend()) {
+                        choiceStack.pop();
+                        if (!choiceStack.isEmpty()) {
+                            choiceStack.peek().choices.pop();
+                        }
+                        continue;
+                    }
+                    this.choiceCounter++;
+                    choiceStack.push(follow(ch.at, ch.choices.peek()));
+
+                }
+                return new Result(null, this.choiceCounter, false);
+            } catch (SolutionFound e) {
+                Iterator<Choice> iter = choiceStack.iterator();
+                LinkedList<Direction> solutionPath = new LinkedList<Direction>();
+                while (iter.hasNext()) {
+                    ch = iter.next();
+                    solutionPath.push(ch.choices.peek());
+                }
+                solutionPath.push(from);
+                Iterator<Direction> iterator = solutionPath.iterator();
+//                while (iterator.hasNext()) {
+//                    System.out.print(" " + iterator.next() + " ");
 //                }
+                if (maze.display != null) {
+                    markPath(solutionPath, 1);
+                    maze.display.updateDisplay();
+                }
+                //System.out.println("Choices made by : " + this.choiceCounter);
+                Result result = new Result(pathToFullPath(solutionPath), this.choiceCounter, true);
+                return result;
             }
-            //sem.release();
         }
-
-        public void solveSequentially() {
-            if (solution.isSet() || seen.containsKey(this.from)) {
-                return;
-            }
-            seen.put(this.from, true);
-            if (this.maze.getEnd().equals(this.from)) {
-                //System.out.println("Solution found + " + this.from.toString());
-                solution.setValue(this);
-                return;
-            }
-            for (Direction direction : this.maze.getMoves(this.from)) {
-                Puzzletask puzzletask = new Puzzletask(this.from.move(direction), direction, this, maze);
-                puzzletask.solveSequentially();
-
-            }
-
-        }
-
-
     }
 
 
