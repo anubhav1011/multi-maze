@@ -22,6 +22,8 @@ public class StudentSTMazeSolver extends SkippingMazeSolver {
     public List<Direction> solve() {
         List<Future<Result>> results = new ArrayList<>();
         Position startPosition = maze.getStart();
+        List<Direction> solution = null;
+        int totalChoicesMade = 0;
         try {
             Choice firstChoice = firstChoice(startPosition);
             while (!firstChoice.choices.isEmpty()) {
@@ -37,8 +39,10 @@ public class StudentSTMazeSolver extends SkippingMazeSolver {
         try {
             for (Future<Result> resultFuture : results) {
                 Result result = resultFuture.get();
-                if (result != null) {
-                    return result.getDirection();
+                boolean solutionFound = result.isSolutionFound();
+                totalChoicesMade += result.getTotalCount();
+                if (solutionFound) {
+                    solution = result.getDirection();
                 }
 
             }
@@ -48,7 +52,8 @@ public class StudentSTMazeSolver extends SkippingMazeSolver {
         } catch (ExecutionException e) {
             e.printStackTrace();
         }
-        return null;
+        System.out.println("Number of choices made: " + totalChoicesMade);
+        return solution;
     }
 
 
@@ -57,6 +62,7 @@ public class StudentSTMazeSolver extends SkippingMazeSolver {
 
         Choice startingPoint;
         Direction from;
+        int choiceCounter;
 
         public ParallelTask(Choice startingPoint, Direction from) {
             this.startingPoint = startingPoint;
@@ -78,10 +84,11 @@ public class StudentSTMazeSolver extends SkippingMazeSolver {
                         }
                         continue;
                     }
+                    this.choiceCounter++;
                     choiceStack.push(follow(ch.at, ch.choices.peek()));
 
                 }
-                return null;
+                return new Result(null, this.choiceCounter, false);
             } catch (SolutionFound e) {
                 Iterator<Choice> iter = choiceStack.iterator();
                 LinkedList<Direction> solutionPath = new LinkedList<Direction>();
@@ -91,14 +98,15 @@ public class StudentSTMazeSolver extends SkippingMazeSolver {
                 }
                 solutionPath.push(from);
                 Iterator<Direction> iterator = solutionPath.iterator();
-                while (iterator.hasNext()) {
-                    System.out.print(" " + iterator.next() + " ");
-                }
+//                while (iterator.hasNext()) {
+//                    System.out.print(" " + iterator.next() + " ");
+//                }
                 if (maze.display != null) {
                     markPath(solutionPath, 1);
                     maze.display.updateDisplay();
                 }
-                Result result = new Result(pathToFullPath(solutionPath), 0);
+                System.out.println("Choices made by : " + this.choiceCounter);
+                Result result = new Result(pathToFullPath(solutionPath), this.choiceCounter, true);
                 return result;
             }
         }

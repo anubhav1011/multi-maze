@@ -6,10 +6,12 @@ public class Result {
 
     private List<Direction> direction;
     private int totalCount;
+    private boolean solutionFound;
 
-    public Result(List<Direction> direction, int counter) {
+    public Result(List<Direction> direction, int counter, boolean solutionFound) {
         this.direction = direction;
         this.totalCount = counter;
+        this.solutionFound = solutionFound;
     }
 
     public List<Direction> getDirection() {
@@ -26,5 +28,9 @@ public class Result {
 
     public void setTotalCount(int totalCount) {
         this.totalCount = totalCount;
+    }
+
+    public boolean isSolutionFound() {
+        return solutionFound;
     }
 }
